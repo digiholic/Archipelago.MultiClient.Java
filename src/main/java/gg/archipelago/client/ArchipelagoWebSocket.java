@@ -44,9 +44,11 @@ public class ArchipelagoWebSocket extends WebSocketClient {
     private static Timer reconnectTimer;
     private boolean downgrade = false;
 
+    private JsonParser parser;
     public ArchipelagoWebSocket(URI serverUri, ArchipelagoClient archipelagoClient) {
         super(serverUri);
         this.archipelagoClient = archipelagoClient;
+        parser = new JsonParser();
         if (reconnectTimer != null) {
             reconnectTimer.cancel();
         }
@@ -61,7 +63,7 @@ public class ArchipelagoWebSocket extends WebSocketClient {
     public void onMessage(String message) {
         try {
             LOGGER.fine("Got Packet: " + message);
-            JsonElement element = JsonParser.parseString(message);
+            JsonElement element = parser.parse(message);
 
             JsonArray cmdList = element.getAsJsonArray();
 
