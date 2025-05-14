@@ -14,11 +14,20 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 logger.info('Java: {} JVM: {}({}}) Arch: {}',System.getProperty('java.version'),System.getProperty('java.vm.version'),System.getProperty('java.vendor'),System.getProperty('os.arch'))
 
 repositories {
+    mavenLocal()
+    maven {
+        url = 'https://repo.runelite.net'
+        content {
+            includeGroupByRegex("net\\.runelite.*")
+        }
+    }
     mavenCentral()
 }
 
 
 dependencies {
+    compileOnly group: 'net.runelite', name:'client', version: '1.9.8'
+
     implementation 'org.java-websocket:Java-WebSocket:1.5.2'
     implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
