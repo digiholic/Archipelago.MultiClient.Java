@@ -1,6 +1,8 @@
 package dev.koifysh.archipelago.network.client;
 
 import com.google.gson.annotations.SerializedName;
+import dev.koifysh.archipelago.Client;
+import dev.koifysh.archipelago.events.RetrievedEvent;
 import dev.koifysh.archipelago.network.APPacket;
 import dev.koifysh.archipelago.network.APPacketType;
 
@@ -9,8 +11,8 @@ import java.util.Random;
 
 /**
  * Used to request a single or multiple values from the server's data storage, see the
- * {@link dev.koifysh.archipelago.ArchipelagoClient#dataStorageSet(SetPacket) ArchipelagoClient.dataStorageSet()} for how to write values to the data storage.
- * A Get package will be answered with a {@link dev.koifysh.archipelago.events.RetrievedEvent RetreivedEvent}.
+ * {@link Client#dataStorageSet(SetPacket) ArchipelagoClient.dataStorageSet()} for how to write values to the data storage.
+ * A Get package will be answered with a {@link RetrievedEvent RetreivedEvent}.
  */
 public class GetPacket extends APPacket {
 

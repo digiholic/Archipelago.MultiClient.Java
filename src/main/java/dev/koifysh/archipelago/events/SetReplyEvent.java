@@ -5,8 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.internal.Primitives;
 import com.google.gson.internal.bind.JsonTreeReader;
-
-import java.lang.reflect.Type;
+import com.google.gson.reflect.TypeToken;
 
 public class SetReplyEvent implements Event {
     @SerializedName("key")
@@ -19,22 +18,24 @@ public class SetReplyEvent implements Event {
     private final int requestID;
 
     private final JsonElement jsonValue;
+    private final Gson gson;
 
-    public SetReplyEvent(String key, Object value, Object original_value, JsonElement jsonValue, int requestID) {
+    public SetReplyEvent(String key, Object value, Object original_value, JsonElement jsonValue, int requestID, Gson gson) {
         this.key = key;
         this.value = value;
         this.original_value = original_value;
         this.jsonValue = jsonValue;
         this.requestID = requestID;
+        this.gson = gson;
     }
 
     public <T> T getValueAsObject(Class<T> classOfT) {
-        Object value = new Gson().fromJson(jsonValue, classOfT);
+        Object value = gson.fromJson(jsonValue, classOfT);
         return Primitives.wrap(classOfT).cast(value);
     }
 
-    public <T> T getValueAsObject(Type typeOfT) {
-        return jsonValue == null ? null : new Gson().fromJson(new JsonTreeReader(jsonValue), typeOfT);
+    public <T> T getValueAsObject(TypeToken<T> typeOfT) {
+        return jsonValue == null ? null : gson.fromJson(new JsonTreeReader(jsonValue), typeOfT.getType());
     }
 
     public int getRequestID() {

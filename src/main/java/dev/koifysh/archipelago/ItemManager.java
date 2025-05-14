@@ -10,15 +10,15 @@ import java.util.ArrayList;
 public class ItemManager {
 
 
-    ArchipelagoClient archipelagoClient;
-    ArchipelagoWebSocket webSocket;
+    Client client;
+    WebSocket webSocket;
 
     ArrayList<NetworkItem> receivedItems = new ArrayList<>();
 
     int index;
 
-    public ItemManager(ArchipelagoClient archipelagoClient) {
-        this.archipelagoClient = archipelagoClient;
+    public ItemManager(Client client) {
+        this.client = client;
     }
 
     public void receiveItems(ArrayList<NetworkItem> ids, int index) {
@@ -27,14 +27,14 @@ public class ItemManager {
         }
         if (receivedItems.size() == index) {
             receivedItems.addAll(ids);
-            DataPackage dp = archipelagoClient.getDataPackage();
-            int myTeam = archipelagoClient.getTeam();
+            DataPackage dp = client.getDataPackage();
+            int myTeam = client.getTeam();
             for (int i = this.index; i < receivedItems.size(); i++) {
                 NetworkItem item = receivedItems.get(i);
-                item.itemName = dp.getItem(item.itemID);
-                item.locationName = dp.getLocation(item.locationID);
-                item.playerName = archipelagoClient.getRoomInfo().getPlayer(myTeam,item.playerID).alias;
-                archipelagoClient.getEventManager().callEvent(new ReceiveItemEvent(item, index));
+                item.itemName = dp.getItem(item.itemID, client.getGame());
+                item.locationName = dp.getLocation(item.locationID, client.getSlotInfo().get(item.playerID).game);
+                item.playerName = client.getRoomInfo().getPlayer(myTeam,item.playerID).alias;
+                client.getEventBus().post(new ReceiveItemEvent(item, i+1));
             }
 
             this.index = receivedItems.size();
@@ -42,7 +42,7 @@ public class ItemManager {
         else {
             if(webSocket != null) {
                 webSocket.sendPacket(new SyncPacket());
-                archipelagoClient.getLocationManager().resendAllCheckedLocations();
+                client.getLocationManager().resendAllCheckedLocations();
             }
         }
     }
@@ -52,8 +52,8 @@ public class ItemManager {
         this.index = index;
     }
 
-    public void setAPWebSocket(ArchipelagoWebSocket archipelagoWebSocket) {
-        this.webSocket = archipelagoWebSocket;
+    public void setAPWebSocket(WebSocket webSocket) {
+        this.webSocket = webSocket;
     }
 
     public int getIndex() {

@@ -14,7 +14,7 @@ public class NetworkItem {
     public int playerID;
 
     /**
-     * Bit flags that tell you information about the item. bitwise OR them with {@link flags} to read.
+     * Bit flags that tell you information about the item. bitwise AND them with {@link dev.koifysh.archipelago.flags.NetworkItem} to read.
      */
     @SerializedName("flags")
     public int flags;
@@ -24,28 +24,4 @@ public class NetworkItem {
     public String locationName;
     public String playerName;
 
-    /**
-     * Flags that will tell you more about the item that was sent.<br>
-     * {@link #ADVANCEMENT},
-     * {@link #USEFUL},
-     * {@link #TRAP}
-     */
-    public static class flags {
-
-        /**
-         * If set, indicates the item can unlock logical advancement
-         */
-        public final static int ADVANCEMENT = 0b001;
-
-        /**
-         * If set, indicates the item is important but not in a way that unlocks advancement
-         */
-        public final static int USEFUL = 0b010;
-
-        /**
-         * If set, indicates the item is a trap
-         */
-        public final static int TRAP = 0b100;
-
-    }
 }

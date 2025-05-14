@@ -4,8 +4,10 @@ import com.google.gson.annotations.SerializedName;
 import dev.koifysh.archipelago.network.APPacket;
 import dev.koifysh.archipelago.network.APPacketType;
 import dev.koifysh.archipelago.parts.NetworkPlayer;
+import dev.koifysh.archipelago.parts.NetworkSlot;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 
 public class ConnectedPacket extends APPacket {
@@ -20,6 +22,8 @@ public class ConnectedPacket extends APPacket {
     public HashSet<Long> missingLocations = new HashSet<>();
     @SerializedName("checked_locations")
     public HashSet<Long> checkedLocations = new HashSet<>();
+    @SerializedName("slot_info")
+    public HashMap<Integer, NetworkSlot> slotInfo;
 
     public ConnectedPacket() {
         super(APPacketType.Connected);

@@ -2,6 +2,13 @@ package dev.koifysh.archipelago;
 
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * A Status to send to the server. <br>
+ * {@link #CLIENT_UNKNOWN} - default, no status. <br>
+ * {@link #CLIENT_READY} - Ready to start. <br>
+ * {@link #CLIENT_PLAYING} - Player has started playing. <br>
+ * {@link #CLIENT_GOAL} - Player has finished their game. This will trigger an auto-release depending on server settings.
+ */
 public enum ClientStatus {
 
     @SerializedName("0")
@@ -13,7 +20,7 @@ public enum ClientStatus {
     @SerializedName("30")
     CLIENT_GOAL(30);
 
-    private int value;
+    private final int value;
     ClientStatus(int value) {
         this.value = value;
     }

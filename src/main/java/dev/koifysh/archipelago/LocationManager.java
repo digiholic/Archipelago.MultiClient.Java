@@ -2,19 +2,22 @@ package dev.koifysh.archipelago;
 
 import dev.koifysh.archipelago.network.client.LocationChecks;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 public class LocationManager {
 
-    ArchipelagoClient archipelagoClient;
-    ArchipelagoWebSocket webSocket;
+    Client client;
+    WebSocket webSocket;
 
     Set<Long> checkedLocations = new HashSet<>();
 
     Set<Long> missingLocations = new HashSet<>();
 
-    public LocationManager(ArchipelagoClient archipelagoClient) {
-        this.archipelagoClient = archipelagoClient;
+    public LocationManager(Client client) {
+        this.client = client;
     }
 
     public boolean checkLocation(long id) {
@@ -57,8 +60,8 @@ public class LocationManager {
         webSocket.sendPacket(packet);
     }
 
-    protected void setAPWebSocket(ArchipelagoWebSocket archipelagoWebSocket) {
-        this.webSocket = archipelagoWebSocket;
+    protected void setAPWebSocket(WebSocket webSocket) {
+        this.webSocket = webSocket;
     }
 
     public Set<Long> getCheckedLocations() {

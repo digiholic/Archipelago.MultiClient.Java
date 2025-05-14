@@ -3,7 +3,6 @@ package dev.koifysh.archipelago.network.server;
 import com.google.gson.annotations.SerializedName;
 import dev.koifysh.archipelago.network.APPacket;
 import dev.koifysh.archipelago.network.APPacketType;
-import dev.koifysh.archipelago.network.RemainingMode;
 import dev.koifysh.archipelago.parts.NetworkPlayer;
 import dev.koifysh.archipelago.parts.Version;
 
@@ -14,15 +13,14 @@ public class RoomInfoPacket extends APPacket {
 
     public Version version;
 
+    @SerializedName("generator_version")
+    public Version generatorVersion;
+
     public String[] tags;
 
     public boolean password;
 
-    @SerializedName("forfeit_mode")
-    public RemainingMode.ForfeitMode forfeitMode;
-
-    @SerializedName("remaining_mode")
-    public RemainingMode remainingMode;
+    public HashMap<String, Integer> permissions;
 
     @SerializedName("hint_cost")
     public int hintCost;
@@ -35,17 +33,15 @@ public class RoomInfoPacket extends APPacket {
 
     @SerializedName("games")
     public ArrayList<String> games = new ArrayList<>();
-    @SerializedName("datapackage_versions")
-    public HashMap<String, Integer> datapackageVersions = new HashMap<>();
+
+    @SerializedName("datapackage_checksums")
+    public HashMap<String, String> datapackageChecksums = new HashMap<>();
 
     @SerializedName("seed_name")
     public String seedName;
 
     @SerializedName("time")
     public double time;
-
-    @SerializedName("permissions")
-    public HashMap<String, Integer> permissions;
 
     public RoomInfoPacket() {
         super(APPacketType.RoomInfo);

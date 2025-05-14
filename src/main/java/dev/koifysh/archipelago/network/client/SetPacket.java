@@ -1,7 +1,7 @@
 package dev.koifysh.archipelago.network.client;
 
-import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import dev.koifysh.archipelago.events.SetReplyEvent;
 import dev.koifysh.archipelago.network.APPacket;
 import dev.koifysh.archipelago.network.APPacketType;
 
@@ -23,7 +23,7 @@ public class SetPacket extends APPacket {
     public Object defaultValue;
 
     /**
-     * If true, the server will send a {@link dev.koifysh.archipelago.events.SetReplyEvent SetReplyEvent} response back to the client.
+     * If true, the server will send a {@link SetReplyEvent SetReplyEvent} response back to the client.
      */
     @SerializedName("want_reply")
     public boolean want_reply = false;
@@ -96,7 +96,7 @@ public class SetPacket extends APPacket {
      */
     public enum Operation {
         /**
-         * Sets the current value of the key on the server to the value given in {@link dev.koifysh.archipelago.network.client.SetPacket#addDataStorageOperation addDataStorageOperation(Operation, Value)}.
+         * Sets the current value of the key on the server to the value given in {@link SetPacket#addDataStorageOperation addDataStorageOperation(Operation, Value)}.
          */
         @SerializedName("replace")
         REPLACE,
