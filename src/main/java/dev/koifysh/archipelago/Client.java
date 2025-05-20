@@ -25,7 +25,6 @@ public abstract class Client {
 
     private final static Logger LOGGER = Logger.getLogger(Client.class.getName());
 
-    private final String dataPackageLocation;
     private static String OS = System.getProperty("os.name").toLowerCase();
 
     private static final Path windowsDataPackageCache;
@@ -50,8 +49,6 @@ public abstract class Client {
     protected Map<String,String> versions;
 
     protected ArrayList<String> games;
-
-    private final static Gson gson = new Gson();
 
     private int hintPoints;
 
@@ -83,12 +80,12 @@ public abstract class Client {
     private Set<String> tags = new HashSet<>();
     private int itemsHandlingFlags = 0b000;
 
-    private Gson gson;
+    private static Gson gson;
 
     // Parameters modified for OSRS usage. Original data package location and non-gson serialization not allowed.
     // If you're looking at this for reference on how to implement an AP game, don't look at this bit
     public Client(String dataPackageLocation, Gson gson, EventBus bus) {
-        this.dataPackageLocation = dataPackageLocation;
+        this.dataPackageLocation = Paths.get(dataPackageLocation);
         this.gson = gson;
 
         loadDataPackage();
