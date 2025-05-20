@@ -40,7 +40,6 @@ class WebSocket extends WebSocketClient {
     private final static java.util.logging.Logger LOGGER = java.util.logging.Logger.getLogger(WebSocket.class.getName());
 
     private final Client client;
-
     private final Gson gson;
 
     private boolean authenticated = false;
@@ -50,16 +49,21 @@ class WebSocket extends WebSocketClient {
     private String seedName;
     private static Timer reconnectTimer;
     private boolean downgrade = false;
+
+    private static final Draft perMessageDeflateDraft = new Draft_6455(new PerMessageDeflateExtension());
+
     private JsonParser parser;
 
     public WebSocket(URI serverUri, Client client, Gson gson) {
-        super(serverUri);
+        super(serverUri, perMessageDeflateDraft);
         this.client = client;
         this.gson = gson;
+
         if (reconnectTimer != null) {
             reconnectTimer.cancel();
         }
         reconnectTimer = new Timer();
+
         parser = new JsonParser();
     }
 

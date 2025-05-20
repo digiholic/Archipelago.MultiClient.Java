@@ -132,7 +132,7 @@ public abstract class Client {
     }
 
 
-    private void loadDataPackage() {
+    protected void loadDataPackage() {
         try {
             FileInputStream fileInput = new FileInputStream(dataPackageLocation);
             dataPackage = gson.fromJson(new InputStreamReader(fileInput, StandardCharsets.UTF_8), dev.koifysh.archipelago.parts.DataPackage.class);
