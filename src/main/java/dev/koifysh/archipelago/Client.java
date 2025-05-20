@@ -16,8 +16,6 @@ import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -25,7 +23,7 @@ public abstract class Client {
 
     private final static Logger LOGGER = Logger.getLogger(Client.class.getName());
 
-    private final Path dataPackageLocation;
+    private final String dataPackageLocation;
 
     protected Map<String,String> versions;
 
@@ -66,7 +64,7 @@ public abstract class Client {
     // Parameters modified for OSRS usage. Original data package location and non-gson serialization not allowed.
     // If you're looking at this for reference on how to implement an AP game, don't look at this bit
     public Client(String dataPackageLocation, Gson gson, EventBus bus) {
-        this.dataPackageLocation = Paths.get(dataPackageLocation);
+        this.dataPackageLocation = dataPackageLocation;
         this.gson = gson;
 
         loadDataPackage();
@@ -134,80 +132,39 @@ public abstract class Client {
     }
 
 
-    protected void loadDataPackage() {
-        synchronized (Client.class){
-            File directoryPath = dataPackageLocation.toFile();
+    private void loadDataPackage() {
+        try {
+            FileInputStream fileInput = new FileInputStream(dataPackageLocation);
+            dataPackage = gson.fromJson(new InputStreamReader(fileInput, StandardCharsets.UTF_8), dev.koifysh.archipelago.parts.DataPackage.class);
+            fileInput.close();
 
-            //ensure the path to the cache exists
-            if(directoryPath.exists() && directoryPath.isDirectory()){
-                //loop through all Archipelago cache folders to find valid data package files
-                Map<String,File> localGamesList = new HashMap<String,File>();
-
-                for(File gameDir : directoryPath.listFiles()){
-                    if(gameDir.isDirectory()){
-                        localGamesList.put(gameDir.getName(), gameDir);
-                    }
-                }
-
-                if(!localGamesList.isEmpty()){
-                    for(String gameName : games){
-                        if(localGamesList.containsKey(gameName)){
-                            //check all checksums
-                            for(File version : localGamesList.get(gameName).listFiles()){
-                                if(versions.containsKey(gameName) && versions.get(gameName).equals(version.getName())){
-                                    try(FileReader reader = new FileReader(version)){
-                                        updateDataPackage(gson.fromJson(reader, DataPackage.class));
-                                        LOGGER.info("Read datapackage for Game: ".concat(gameName).concat(" Checksum: ").concat(version.getName()));
-                                    } catch (IOException e){
-                                        LOGGER.info("Failed to read a datapackage. Starting with a new one.");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } else{
-                //cache doesn't exist. Create the filepath
-                boolean success = directoryPath.mkdirs();
-                if(success){
-                    LOGGER.info("DataPackage directory didn't exist. Starting from a new one.");
-                } else{
-                    LOGGER.severe("Failed to make directories for datapackage cache.");
-                }
-            }
+        } catch (IOException e) {
+            LOGGER.info("no dataPackage found creating a new one.");
+            dataPackage = new DataPackage();
+            saveDataPackage();
         }
     }
 
-    public void saveDataPackage() {
-        synchronized (Client.class){
-            //Loop through games to ensure we have folders for each of them in the cache
-            for(String gameName : games){
-                File gameFolder = dataPackageLocation.resolve(gameName).toFile();
-                if(!gameFolder.exists()){
-                    //game folder not found. Make it
-                    gameFolder.mkdirs();
-                }
+    void saveDataPackage() {
+        try {
+            File dataPackageFile = new File(dataPackageLocation);
 
-                //save the datapackage
-                String gameVersion = versions.get(gameName);
-                if(gameVersion == null) {
-                    continue;
-                }
+            //noinspection ResultOfMethodCallIgnored
+            dataPackageFile.getParentFile().mkdirs();
+            //noinspection ResultOfMethodCallIgnored
+            dataPackageFile.createNewFile();
 
-                //if key is for this game
-                File filePath = dataPackageLocation.resolve(gameName).resolve(gameVersion).toFile();
+            FileWriter writer = new FileWriter(dataPackageFile);
 
-                try (Writer writer = new FileWriter(filePath)){
-                    //if game is in list of games, save it
-                    gson.toJson(dataPackage.getGame(gameName), writer);
-                    LOGGER.info("Saving datapackage for Game: ".concat(gameName).concat(" Checksum: ").concat(gameVersion));
-                } catch (IOException e) {
-                    LOGGER.warning("unable to save DataPackage.");
-                }
-
-            }
+            String s = gson.toJson(dataPackage);
+            gson.toJson(dataPackage, writer);
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            LOGGER.warning("unable to save DataPackage.");
         }
     }
+
 
     /**
      * Returns true only if connected to an Archipelago server.
