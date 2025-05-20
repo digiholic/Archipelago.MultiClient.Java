@@ -10,11 +10,14 @@ import dev.koifysh.archipelago.parts.NetworkSlot;
 import dev.koifysh.archipelago.parts.Version;
 import dev.koifysh.archipelago.network.client.*;
 import net.runelite.client.eventbus.EventBus;
+import org.apache.hc.core5.net.URIBuilder;
 
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -23,6 +26,32 @@ public abstract class Client {
     private final static Logger LOGGER = Logger.getLogger(Client.class.getName());
 
     private final String dataPackageLocation;
+    private static String OS = System.getProperty("os.name").toLowerCase();
+
+    private static final Path windowsDataPackageCache;
+
+    private static final Path otherDataPackageCache;
+
+    static
+    {
+        String appData = System.getenv("LOCALAPPDATA");
+        String userHome = System.getProperty("user.home");
+        if(appData  == null || appData.isEmpty()) {
+            windowsDataPackageCache = Paths.get(userHome, "appdata","local","Archipelago","cache","datapackage");
+
+        } else {
+        windowsDataPackageCache = Paths.get(appData, "Archipelago", "cache", "datapackage");
+        }
+        otherDataPackageCache =  Paths.get(userHome, ".cache", "Archipelago", "datapackage");
+    }
+
+    private static Path dataPackageLocation;
+
+    protected Map<String,String> versions;
+
+    protected ArrayList<String> games;
+
+    private final static Gson gson = new Gson();
 
     private int hintPoints;
 
@@ -43,7 +72,7 @@ public abstract class Client {
     //private final EventManager eventManager;
     private EventBus eventBus;
 
-    public static final Version protocolVersion = new Version(0, 4, 7);
+    public static final Version protocolVersion = new Version(0, 6, 1);
 
     private int team;
     private int slot;
@@ -127,36 +156,78 @@ public abstract class Client {
     }
 
 
-    private void loadDataPackage() {
-        try {
-            FileInputStream fileInput = new FileInputStream(dataPackageLocation);
-            dataPackage = gson.fromJson(new InputStreamReader(fileInput, StandardCharsets.UTF_8), dev.koifysh.archipelago.parts.DataPackage.class);
-            fileInput.close();
+    protected void loadDataPackage() {
+        synchronized (Client.class){
+            File directoryPath = dataPackageLocation.toFile();
 
-        } catch (IOException e) {
-            LOGGER.info("no dataPackage found creating a new one.");
-            dataPackage = new DataPackage();
-            saveDataPackage();
+            //ensure the path to the cache exists
+            if(directoryPath.exists() && directoryPath.isDirectory()){
+                //loop through all Archipelago cache folders to find valid data package files
+                Map<String,File> localGamesList = new HashMap<String,File>();
+
+                for(File gameDir : directoryPath.listFiles()){
+                    if(gameDir.isDirectory()){
+                        localGamesList.put(gameDir.getName(), gameDir);
+                    }
+                }
+
+                if(!localGamesList.isEmpty()){
+                    for(String gameName : games){
+                        if(localGamesList.containsKey(gameName)){
+                            //check all checksums
+                            for(File version : localGamesList.get(gameName).listFiles()){
+                                if(versions.containsKey(gameName) && versions.get(gameName).equals(version.getName())){
+                                    try(FileReader reader = new FileReader(version)){
+                                        updateDataPackage(gson.fromJson(reader, DataPackage.class));
+                                        LOGGER.info("Read datapackage for Game: ".concat(gameName).concat(" Checksum: ").concat(version.getName()));
+                                    } catch (IOException e){
+                                        LOGGER.info("Failed to read a datapackage. Starting with a new one.");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else{
+                //cache doesn't exist. Create the filepath
+                boolean success = directoryPath.mkdirs();
+                if(success){
+                    LOGGER.info("DataPackage directory didn't exist. Starting from a new one.");
+                } else{
+                    LOGGER.severe("Failed to make directories for datapackage cache.");
+                }
+            }
         }
     }
 
-    void saveDataPackage() {
-        try {
-            File dataPackageFile = new File(dataPackageLocation);
+    public void saveDataPackage() {
+        synchronized (Client.class){
+            //Loop through games to ensure we have folders for each of them in the cache
+            for(String gameName : games){
+                File gameFolder = dataPackageLocation.resolve(gameName).toFile();
+                if(!gameFolder.exists()){
+                    //game folder not found. Make it
+                    gameFolder.mkdirs();
+                }
 
-            //noinspection ResultOfMethodCallIgnored
-            dataPackageFile.getParentFile().mkdirs();
-            //noinspection ResultOfMethodCallIgnored
-            dataPackageFile.createNewFile();
+                //save the datapackage
+                String gameVersion = versions.get(gameName);
+                if(gameVersion == null) {
+                    continue;
+                }
 
-            FileWriter writer = new FileWriter(dataPackageFile);
+                //if key is for this game
+                File filePath = dataPackageLocation.resolve(gameName).resolve(gameVersion).toFile();
 
-            String s = gson.toJson(dataPackage);
-            gson.toJson(dataPackage, writer);
-            writer.flush();
-            writer.close();
-        } catch (IOException e) {
-            LOGGER.warning("unable to save DataPackage.");
+                try (Writer writer = new FileWriter(filePath)){
+                    //if game is in list of games, save it
+                    gson.toJson(dataPackage.getGame(gameName), writer);
+                    LOGGER.info("Saving datapackage for Game: ".concat(gameName).concat(" Checksum: ").concat(gameVersion));
+                } catch (IOException e) {
+                    LOGGER.warning("unable to save DataPackage.");
+                }
+
+            }
         }
     }
 
@@ -248,28 +319,23 @@ public abstract class Client {
      * @throws URISyntaxException on malformed address
      */
     public void connect(String address) throws URISyntaxException {
+        URIBuilder builder = new URIBuilder((!address.contains("//")) ? "//" + address : address);
+        if (builder.getPort() == -1) { //set default port if not included
+            builder.setPort(38281);
+        }
+
         if (webSocket != null && webSocket.isOpen()) {
             LOGGER.fine("previous WebSocket is open, closing.");
             webSocket.close();
         }
 
-        address = (!address.contains("//")) ? "//" + address : address;
-        URI uri = new URI(address);
-
-        if (uri.getPort() == -1) { //set default port if not included
-            // sigh, the things we do to avoid an apache dependency
-            uri = new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), 38281,
-                    uri.getPath(), uri.getQuery(), uri.getFragment());
-        }
-
-        if (uri.getScheme() == null) {
-            uri = new URI("wss", uri.getUserInfo(), uri.getHost(), uri.getPort(),
-                    uri.getPath(), uri.getQuery(), uri.getFragment());
-            connect(uri, true);
+        if (builder.getScheme() == null) {
+            builder.setScheme("wss");
+            connect(builder.build(), true);
             return;
         }
 
-        connect(uri);
+        connect(builder.build());
     }
 
     /**
@@ -523,6 +589,21 @@ public abstract class Client {
      *         <td> item_name_groups_{game_name} </td>
      *         <td> dict[str, list[str]] </td>
      *         <td> item_name_groups belonging to the requested game. </td>
+     *     </tr>
+     *     <tr>
+     *         <td> location_name_groups_{game_name} </td>
+     *         <td> dict[str, list[str]] </td>
+     *         <td> location_name_groups belonging to the requested game. </td>
+     *     </tr>
+     *     <tr>
+     *         <td> client_status_{team}_{slot} </td>
+     *         <td> ClientStatus </td>
+     *         <td> The current game status of the requested player. </td>
+     *     </tr>
+     *     <tr>
+     *         <td> race_mode </td>
+     *         <td> int </td>
+     *         <td> 0 if race mode is disabled, and 1 if it's enabled. </td>
      *     </tr>
      * </table>
      *

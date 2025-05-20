@@ -22,7 +22,11 @@ import dev.koifysh.archipelago.events.*;
 import dev.koifysh.archipelago.network.server.*;
 
 import dev.koifysh.archipelago.parts.NetworkSlot;
+import org.apache.hc.core5.net.URIBuilder;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.drafts.Draft;
+import org.java_websocket.drafts.Draft_6455;
+import org.java_websocket.extensions.permessage_deflate.PerMessageDeflateExtension;
 import org.java_websocket.handshake.ServerHandshake;
 
 import javax.net.ssl.SSLException;
@@ -83,6 +87,11 @@ class WebSocket extends WebSocketClient {
 
                         //save room info
                         client.setRoomInfo(roomInfo);
+
+                        client.versions = roomInfo.datapackageChecksums;
+                        client.games = roomInfo.games;
+
+                        client.loadDataPackage();
 
                         checkDataPackage(roomInfo.datapackageChecksums, roomInfo.games);
 
@@ -290,9 +299,7 @@ class WebSocket extends WebSocketClient {
             // attempt to reconnect using non-secure web socket if we are failing to connect with a secure socket.
             if (uri.getScheme().equalsIgnoreCase("wss") && downgrade) {
                 try {
-                    uri = new URI("ws", uri.getUserInfo(), uri.getHost(), uri.getPort(),
-                            uri.getPath(), uri.getQuery(), uri.getFragment());
-                    client.connect(uri);
+                    client.connect(new URIBuilder(uri).setScheme("ws").build());
                 } catch (URISyntaxException ignored) {
                     client.onClose("(AP-275) " + reason, 0);
                 }
